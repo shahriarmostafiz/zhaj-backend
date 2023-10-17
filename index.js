@@ -3,9 +3,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 const port = process.env.PORT || 5000;
@@ -29,6 +27,7 @@ async function run() {
   try {
     // await client.connect();
     const productsCollection = client.db("zhajDB").collection("zhajproducts");
+    const userCollection = client.db("zhajDB").collection("users");
     // C:create
     app.post("/products", async (req, res) => {
       const product = req.body;
@@ -80,6 +79,50 @@ async function run() {
       const result = await productsCollection.deleteOne(query);
       res.send(result);
       console.log("product deleted with id", id);
+    });
+
+    // user management
+    // post user
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+      console.log(user);
+    });
+    // get user
+    app.get("/users", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+    // get single user
+    app.get("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await userCollection.findOne(query);
+      res.send(result);
+    });
+    // update login time
+    app.put("/users", async (req, res) => {
+      const userInfo = req.body;
+      console.log(userInfo);
+      const filter = { email: userInfo.email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          lastLogin: userInfo.lastLogin,
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
+    // delete operation
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await userCollection.deleteOne(query);
+      // res.send(id);
+      res.send(result);
     });
 
     await client.db("admin").command({ ping: 1 });
